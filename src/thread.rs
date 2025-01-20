@@ -9,6 +9,7 @@ use crate::traits::{FromLuaMulti, IntoLuaMulti};
 use crate::types::{LuaType, ValueRef};
 use crate::util::{check_stack, error_traceback_thread, pop_error, StackGuard};
 
+use crate::IntoLua;
 #[cfg(not(feature = "luau"))]
 use crate::{
     hook::{Debug, HookTriggers},
@@ -140,6 +141,27 @@ impl Thread {
         }
     }
 
+    /// Resumes a thread with an error
+    #[cfg(feature = "luau")]
+    pub fn resume_error(&self, arg: impl IntoLua) -> Result<()> {
+        let lua = self.0.lua.lock();
+        if self.status_inner(&lua) != ThreadStatus::Resumable {
+            return Err(Error::CoroutineUnresumable);
+        }
+
+        let state = lua.state();
+        let thread_state = self.state();
+        unsafe {
+            let _sg = StackGuard::new(state);
+            let _thread_sg = StackGuard::with_top(thread_state, 0);
+
+            self.resumeerror_inner(&lua, arg)?;
+            check_stack(state, 1)?;
+            ffi::lua_xmove(thread_state, state, 1);
+            Ok(())
+        }
+    }
+
     /// Resumes execution of this thread.
     ///
     /// It's similar to `resume()` but leaves `nresults` values on the thread stack.
@@ -166,6 +188,30 @@ impl Thread {
         }
 
         Ok(nresults)
+    }
+
+    #[cfg(feature = "luau")]
+    /// Resumes execution of this thread.
+    unsafe fn resumeerror_inner(&self, lua: &RawLua, arg: impl IntoLua) -> Result<()> {
+        let state = lua.state();
+        let thread_state = self.state();
+
+        arg.push_into_stack(lua)?;
+        check_stack(thread_state, 1)?;
+        ffi::lua_xmove(state, thread_state, 1);
+
+        let ret = ffi::luau::lua_resumeerror(thread_state, state);
+        if ret != ffi::LUA_OK && ret != ffi::LUA_YIELD {
+            if ret == ffi::LUA_ERRMEM {
+                // Don't call error handler for memory errors
+                return Err(pop_error(thread_state, ret));
+            }
+            check_stack(state, 3)?;
+            protect_lua!(state, 0, 1, |state| error_traceback_thread(state, thread_state))?;
+            return Err(pop_error(state, ret));
+        }
+
+        Ok(())
     }
 
     /// Gets the status of the thread.
