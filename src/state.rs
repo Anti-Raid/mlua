@@ -153,7 +153,7 @@ impl Drop for Lua {
     }
 }
 
-/*impl Clone for Lua {
+impl Clone for Lua {
     #[inline]
     fn clone(&self) -> Self {
         Lua {
@@ -161,7 +161,7 @@ impl Drop for Lua {
             collect_garbage: false,
         }
     }
-}*/
+}
 
 impl fmt::Debug for Lua {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
