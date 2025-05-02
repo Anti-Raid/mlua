@@ -67,6 +67,8 @@ impl Drop for RawLua {
             if !self.owned {
                 return;
             }
+    
+            println!("Dropping RawLua :)");
 
             let mem_state = MemoryState::get(self.main_state());
 
