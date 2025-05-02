@@ -58,7 +58,7 @@ pub struct RawLua {
     pub(super) state: Cell<*mut ffi::lua_State>,
     pub(super) main_state: Option<NonNull<ffi::lua_State>>,
     pub(super) extra: XRc<UnsafeCell<ExtraData>>,
-    owned: bool,
+    pub(super) owned: bool,
 }
 
 impl Drop for RawLua {

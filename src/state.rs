@@ -339,6 +339,12 @@ impl Lua {
         R::from_stack_multi(nresults, &lua)
     }
 
+    /// Returns if the inner RawLua is owned for debugging purposes
+    pub fn is_owned(&self) -> bool {
+        let lua = self.lock();
+        lua.owned
+    }
+
     /// Loads the specified subset of the standard libraries into an existing Lua state.
     ///
     /// Use the [`StdLib`] flags to specify the libraries you want to load.
