@@ -345,6 +345,11 @@ impl Lua {
         lua.owned
     }
 
+    /// Returns the strong count for the inner RawLua
+    pub fn strong_count(&self) -> usize {
+        XRc::strong_count(&self.raw)
+    }
+
     /// Loads the specified subset of the standard libraries into an existing Lua state.
     ///
     /// Use the [`StdLib`] flags to specify the libraries you want to load.
