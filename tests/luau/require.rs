@@ -1,6 +1,6 @@
 use mlua::{IntoLua, Lua, Result, Value};
 
-fn run_require(lua: &Lua, path: &str) -> Result<Value> {
+fn run_require(lua: &Lua, path: impl IntoLua) -> Result<Value> {
     lua.load(r#"return require(...)"#).call(path)
 }
 
@@ -26,6 +26,12 @@ fn test_require_errors() {
     assert!(
         (res.unwrap_err().to_string()).contains("require path must start with a valid prefix: ./, ../, or @")
     );
+
+    // Pass non-string to require
+    let res = run_require(&lua, true);
+    assert!(res.is_err());
+    assert!((res.unwrap_err().to_string())
+        .contains("bad argument #1 to 'require' (string expected, got boolean)"));
 }
 
 #[test]
@@ -60,12 +66,14 @@ fn test_require_without_config() {
     // RequireWithFileAmbiguity
     let res = run_require(&lua, "./require/without_config/ambiguous_file_requirer");
     assert!(res.is_err());
-    assert!((res.unwrap_err().to_string()).contains("require path could not be resolved to a unique file"));
+    assert!((res.unwrap_err().to_string())
+        .contains("could not resolve child component \"dependency\" (ambiguous)"));
 
     // RequireWithDirectoryAmbiguity
     let res = run_require(&lua, "./require/without_config/ambiguous_directory_requirer");
     assert!(res.is_err());
-    assert!((res.unwrap_err().to_string()).contains("require path could not be resolved to a unique file"));
+    assert!((res.unwrap_err().to_string())
+        .contains("could not resolve child component \"dependency\" (ambiguous)"));
 
     // CheckCachedResult
     let res = run_require(&lua, "./require/without_config/validate_cache").unwrap();
@@ -97,4 +105,39 @@ fn test_require_with_config() {
     let res = run_require(&lua, "@");
     assert!(res.is_err());
     assert!((res.unwrap_err().to_string()).contains("@ is not a valid alias"));
+}
+
+#[cfg(feature = "async")]
+#[tokio::test]
+async fn test_async_require() -> Result<()> {
+    let lua = Lua::new();
+
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path().join("async_chunk.luau");
+    std::fs::write(
+        &temp_path,
+        r#"
+        sleep_ms(10)
+        return "result_after_async_sleep"
+    "#,
+    )
+    .unwrap();
+
+    lua.globals().set(
+        "sleep_ms",
+        lua.create_async_function(|_, ms: u64| async move {
+            tokio::time::sleep(std::time::Duration::from_millis(ms)).await;
+            Ok(())
+        })?,
+    )?;
+
+    lua.load(
+        r#"
+        local result = require("./async_chunk")
+        assert(result == "result_after_async_sleep")
+        "#,
+    )
+    .set_name(format!("@{}", temp_dir.path().join("require.rs").display()))
+    .exec_async()
+    .await
 }
