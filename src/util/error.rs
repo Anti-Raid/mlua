@@ -315,7 +315,7 @@ pub(crate) unsafe fn init_error_registry(state: *mut ffi::lua_State) -> Result<(
                     let _ = write!(&mut (*err_buf), "{error}");
                     Ok(err_buf)
                 }
-                Some(WrappedFailure::Panic(Some(ref panic))) => {
+                Some(WrappedFailure::Panic(Some(panic))) => {
                     let err_buf_key = &ERROR_PRINT_BUFFER_KEY as *const u8 as *const c_void;
                     ffi::lua_rawgetp(state, ffi::LUA_REGISTRYINDEX, err_buf_key);
                     let err_buf = ffi::lua_touserdata(state, -1) as *mut String;
@@ -349,7 +349,11 @@ pub(crate) unsafe fn init_error_registry(state: *mut ffi::lua_State) -> Result<(
         state,
         Some(|state| {
             ffi::lua_pushcfunction(state, error_tostring);
-            rawset_field(state, -2, "__tostring")
+            ffi::lua_setfield(state, -2, cstr!("__tostring"));
+
+            // This is mostly for Luau typeof() function
+            ffi::lua_pushstring(state, cstr!("error"));
+            ffi::lua_setfield(state, -2, cstr!("__type"));
         }),
     )?;
 

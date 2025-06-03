@@ -67,6 +67,7 @@
 #![cfg_attr(docsrs, feature(doc_cfg))]
 #![cfg_attr(not(send), allow(clippy::arc_with_non_send_sync))]
 #![allow(clippy::ptr_eq)]
+#![allow(unsafe_op_in_unsafe_fn)]
 
 #[macro_use]
 mod macros;
@@ -216,7 +217,7 @@ pub use mlua_derive::FromLua;
 ///
 /// You can register multiple entrypoints as required.
 ///
-/// ```
+/// ```ignore
 /// use mlua::{Lua, Result, Table};
 ///
 /// #[mlua::lua_module]
@@ -253,7 +254,7 @@ pub use mlua_derive::FromLua;
 ///     ...
 /// }
 /// ```
-#[cfg(any(feature = "module", docsrs))]
+#[cfg(all(feature = "mlua_derive", any(feature = "module", doc)))]
 #[cfg_attr(docsrs, doc(cfg(feature = "module")))]
 pub use mlua_derive::lua_module;
 

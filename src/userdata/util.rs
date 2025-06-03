@@ -354,7 +354,7 @@ unsafe fn init_userdata_metatable_index(state: *mut ffi::lua_State) -> Result<()
         end
     "#;
     protect_lua!(state, 0, 1, |state| {
-        let ret = ffi::luaL_loadbuffer(state, code.as_ptr(), code.count_bytes(), cstr!("__mlua_index"));
+        let ret = ffi::luaL_loadbuffer(state, code.as_ptr(), code.count_bytes(), cstr!("=__mlua_index"));
         if ret != ffi::LUA_OK {
             ffi::lua_error(state);
         }
@@ -405,7 +405,8 @@ unsafe fn init_userdata_metatable_newindex(state: *mut ffi::lua_State) -> Result
         end
     "#;
     protect_lua!(state, 0, 1, |state| {
-        let ret = ffi::luaL_loadbuffer(state, code.as_ptr(), code.count_bytes(), cstr!("__mlua_newindex"));
+        let code_len = code.count_bytes();
+        let ret = ffi::luaL_loadbuffer(state, code.as_ptr(), code_len, cstr!("=__mlua_newindex"));
         if ret != ffi::LUA_OK {
             ffi::lua_error(state);
         }
@@ -454,9 +455,9 @@ pub(crate) unsafe extern "C" fn collect_userdata<T>(
 // It checks if the userdata is safe to destroy and sets the "destroyed" metatable
 // to prevent further GC collection.
 pub(super) unsafe extern "C-unwind" fn destroy_userdata_storage<T>(state: *mut ffi::lua_State) -> c_int {
-    let ud = get_userdata::<UserDataStorage<T>>(state, -1);
+    let ud = get_userdata::<UserDataStorage<T>>(state, 1);
     if (*ud).is_safe_to_destroy() {
-        take_userdata::<UserDataStorage<T>>(state);
+        take_userdata::<UserDataStorage<T>>(state, 1);
         ffi::lua_pushboolean(state, 1);
     } else {
         ffi::lua_pushboolean(state, 0);

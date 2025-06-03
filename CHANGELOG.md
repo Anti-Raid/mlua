@@ -1,3 +1,35 @@
+## v0.11.0-beta.1 (May 7th, 2025)
+
+- New "require-by-string" for Luau (with `Require` trait and async support)
+- Added `Thread::resume_error` support for Luau
+- 52 bit integers support for Luau (this is a breaking change)
+- New features for Luau compiler (constants, disabled builtins, known members)
+- `AsyncThread<A, R>` changed to `AsyncThread<R>` (`A` pushed to stack immediately)
+- Lifetime `'a` moved from `AsChunk<'a>` to `AsChunk::source where Self: 'a`
+- `Lua::scope` pass `&Scope` instead of `&mut Scope` to closure
+- Added global hooks support (Lua 5.1+)
+- Added per-thread hooks support (Lua 5.1+)
+- `Lua::init_from_ptr` renamed to `Lua::get_or_init_from_ptr` and returns `&Lua`
+- `Lua:load_from_function` is deprecated (this is `register_module` now)
+- Added `Lua::register_module` and `Lua::preload_module`
+
+## v0.10.4 (May 5th, 2025)
+
+- Luau updated to 0.672
+- New serde option `encode_empty_tables_as_array` to serialize empty tables as arrays
+- Added `WeakLua` and `Lua::weak()` to create weak references to Lua state
+- Trigger abort when Luau userdata destructors are panic (Luau GC does not support it)
+- Added `AnyUserData::type_id()` method to get the type id of the userdata
+- Added `Chunk::name()`, `Chunk::environment()` and `Chunk::mode()` functions
+- Support borrowing underlying wrapped types for `UserDataRef` and `UserDataRefMut` (under `userdata-wrappers` feature)
+- Added large (52bit) integers support for Luau
+- Enable `serde` for `bstr` if `serialize` feature flag is enabled
+- Recursive warnings (Lua 5.4) are no longer allowed
+- Implemented `IntoLua`/`FromLua` for `BorrowedString` and `BorrowedBytes`
+- Implemented `IntoLua`/`FromLua` for `char`
+- Enable `Thread::reset()` for all Lua versions (limited support for 5.1-5.3)
+- Bugfixes and improvements
+
 ## v0.10.3 (Jan 27th, 2025)
 
 - Set `Default` for `Value` to be `Nil`
